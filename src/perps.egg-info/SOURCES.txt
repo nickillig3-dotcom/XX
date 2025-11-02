@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+src/perps/__init__.py
+src/perps/cli.py
+src/perps.egg-info/PKG-INFO
+src/perps.egg-info/SOURCES.txt
+src/perps.egg-info/dependency_links.txt
+src/perps.egg-info/top_level.txt
+src/perps/core/types.py
+tests/test_placeholder.py

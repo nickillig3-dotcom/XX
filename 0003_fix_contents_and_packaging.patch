@@ -1,0 +1,257 @@
+diff --git a/pyproject.toml b/pyproject.toml
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -0,0 +1,47 @@
++[project]
++name = "perpsignals"
++version = "0.0.1"
++description = "Public-data perpetual futures signal engine (no API keys)"
++readme = "README.md"
++requires-python = ">=3.11"
++
++[tool.black]
++line-length = 100
++target-version = ["py311"]
++
++[tool.pytest.ini_options]
++addopts = "-q"
++testpaths = ["tests"]
++
++[tool.mypy]
++python_version = "3.11"
++ignore_missing_imports = true
++
++[build-system]
++requires = ["setuptools>=68", "wheel"]
++build-backend = "setuptools.build_meta"
++
++[tool.setuptools]
++package-dir = {"" = "src"}
++
++[tool.setuptools.packages.find]
++where = ["src"]
++
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -0,0 +1,33 @@
++name: CI
++on: [push, pull_request]
++jobs:
++  test:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: "3.11"
++      - name: Install deps
++        run: |
++          python -m pip install --upgrade pip
++          pip install -r requirements.txt -r requirements-dev.txt
++          pip install -e .
++      - name: Lint/Type
++        run: |
++          python -m black --check .
++          python -m ruff check .
++          python -m mypy .
++      - name: Tests
++        run: python -m pytest -q
++
+diff --git a/.github/workflows/publish.yml b/.github/workflows/publish.yml
+--- a/.github/workflows/publish.yml
++++ b/.github/workflows/publish.yml
+@@ -0,0 +1,33 @@
++name: Publish Signals (scheduled)
++on:
++  schedule:
++    - cron: "*/30 * * * *"
++  workflow_dispatch:
++jobs:
++  publish:
++    runs-on: ubuntu-latest
++    steps:
++      - uses: actions/checkout@v4
++      - uses: actions/setup-python@v5
++        with:
++          python-version: "3.11"
++      - name: Install deps
++        run: |
++          python -m pip install --upgrade pip
++          pip install -r requirements.txt
++          pip install -e .
++      - name: Generate artifacts
++        run: python -m perps.cli publish
++      - name: Commit artifacts
++        run: |
++          git config user.name "github-actions[bot]"
++          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
++          git add docs/
++          git commit -m "chore(publish): update artifacts" || echo "No changes to commit"
++          git push
++
+diff --git a/requirements.txt b/requirements.txt
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -0,0 +1,3 @@
++httpx==0.27.2
++pydantic==2.8.2
++tenacity==8.5.0
+diff --git a/requirements-dev.txt b/requirements-dev.txt
+--- a/requirements-dev.txt
++++ b/requirements-dev.txt
+@@ -0,0 +1,8 @@
++pytest==8.3.3
++black==24.8.0
++ruff==0.6.8
++mypy==1.11.2
++pre-commit==3.8.0
++types-requests==2.32.0.20241016
++
++# for local editable install helpers
+diff --git a/.pre-commit-config.yaml b/.pre-commit-config.yaml
+--- a/.pre-commit-config.yaml
++++ b/.pre-commit-config.yaml
+@@ -0,0 +1,26 @@
++repos:
++  - repo: https://github.com/pre-commit/pre-commit-hooks
++    rev: v4.6.0
++    hooks:
++      - id: check-merge-conflict
++      - id: end-of-file-fixer
++      - id: trailing-whitespace
++      - id: check-yaml
++  - repo: https://github.com/psf/black
++    rev: 24.8.0
++    hooks:
++      - id: black
++  - repo: https://github.com/astral-sh/ruff-pre-commit
++    rev: v0.6.8
++    hooks:
++      - id: ruff
++        args: [--fix]
++
+diff --git a/README.md b/README.md
+--- a/README.md
++++ b/README.md
+@@ -0,0 +1,44 @@
++# PerpSignals (Bootstrap)
++
++**Ziel**: Public‑Daten von Perpetual‑Futures (ohne API‑Keys) einsammeln, Signale erzeugen, Artefakte unter `docs/`.
++
++## Quickstart (Windows/Powershell)
++```powershell
++python -m venv .venv
++.\.venv\Scripts\activate
++python -m pip install --upgrade pip
++pip install -r requirements.txt -r requirements-dev.txt
++pip install -e .
++python -m pre_commit install
++pytest -q
++python -m perps.cli publish
++```
++
++> Tipp: Wenn `pre-commit` im PATH fehlt, nutze immer `python -m pre_commit ...`
++
++## Ordner
++```
++src/perps/            # Paket
++docs/                 # Artefakte (Signals, index.md)
++```
++
+diff --git a/AI_COPILOT.md b/AI_COPILOT.md
+--- a/AI_COPILOT.md
++++ b/AI_COPILOT.md
+@@ -0,0 +1,32 @@
++# AI‑Copilot Arbeitsvertrag
++- Nur unified diffs liefern (keine Freitext‑Einfügeanweisungen)
++- Max. 200 geänderte Zeilen pro Patch
++- Wenn Kontext unsicher: PLAN + Fragen, **kein** Patch
++- Tests gehören zum Patch
++
+diff --git a/src/perps/cli.py b/src/perps/cli.py
+--- a/src/perps/cli.py
++++ b/src/perps/cli.py
+@@ -0,0 +1,92 @@
++from __future__ import annotations
++import argparse
++from pathlib import Path
++
++DOCS_DIR = Path("docs")
++
++
++def cmd_fetch() -> None:
++    """Placeholder: Public‑Daten später hier einfügen. Schreibt Sample nach data/."""
++    data_dir = Path("data")
++    data_dir.mkdir(parents=True, exist_ok=True)
++    (data_dir / "README.txt").write_text("Hier landen rohe Public-Daten (Samples).", encoding="utf-8")
++    print("fetch: ok (placeholder)")
++
++
++def cmd_signals() -> None:
++    """Placeholder: erzeugt Dummy‑Signals JSON."""
++    out = DOCS_DIR / "signals.json"
++    DOCS_DIR.mkdir(parents=True, exist_ok=True)
++    out.write_text('{"status":"placeholder","signals":[]}', encoding="utf-8")
++    print(f"signals: wrote {out}")
++
++
++def cmd_publish() -> None:
++    """Schreibt eine minimale Indexseite unter docs/"""
++    DOCS_DIR.mkdir(parents=True, exist_ok=True)
++    index = DOCS_DIR / "index.md"
++    index.write_text(
++        "# PerpSignals\n\n- Status: initial bootstrap\n- Artefakte: `signals.json`\n",
++        encoding="utf-8",
++    )
++    print(f"publish: wrote {index}")
++
++
++def main() -> None:
++    p = argparse.ArgumentParser(prog="perps", description="PerpSignals CLI")
++    sub = p.add_subparsers(dest="cmd", required=True)
++    sub.add_parser("fetch")
++    sub.add_parser("signals")
++    sub.add_parser("publish")
++    args = p.parse_args()
++    if args.cmd == "fetch":
++        cmd_fetch()
++    elif args.cmd == "signals":
++        cmd_signals()
++    elif args.cmd == "publish":
++        cmd_publish()
++    else:
++        p.error("unknown command")
++
++
++if __name__ == "__main__":
++    main()
++
+diff --git a/src/perps/core/types.py b/src/perps/core/types.py
+--- a/src/perps/core/types.py
++++ b/src/perps/core/types.py
+@@ -0,0 +1,25 @@
++from __future__ import annotations
++from datetime import datetime
++from pydantic import BaseModel
++
++
++class Signal(BaseModel):
++    symbol: str
++    name: str
++    value: float | int | str
++    at: datetime
++
++
++class SignalSet(BaseModel):
++    source: str
++    generated_at: datetime
++    items: list[Signal]
++
+diff --git a/tests/test_placeholder.py b/tests/test_placeholder.py
+--- a/tests/test_placeholder.py
++++ b/tests/test_placeholder.py
+@@ -0,0 +1,4 @@
++def test_placeholder_succeeds():
++    assert 1 + 1 == 2
++
